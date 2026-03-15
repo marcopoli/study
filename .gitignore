@@ -151,6 +151,10 @@ Thumbs.db
 # Human/LLM eval logs/results
 *.log
 system/faiss_index/
+system/data/
+system/logs/
+system/uploaded_files/
+system/visualizations/
 evaluation/results/
 evaluation/datasets/
 # Keep essential config but ignore local overrides

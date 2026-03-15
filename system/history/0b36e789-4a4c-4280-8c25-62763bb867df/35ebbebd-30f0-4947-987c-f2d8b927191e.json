@@ -1,0 +1,18 @@
+[
+  {
+    "role": "user",
+    "content": "Quali sono gli argomenti principali del corso?"
+  },
+  {
+    "role": "bot",
+    "content": "Mi dispiace, ma non ho trovato informazioni utili per rispondere alla tua domanda. I dati disponibili non contengono informazioni sui principali argomenti del corso di Semantics in Intelligent Information Access."
+  },
+  {
+    "role": "user",
+    "content": "Quali sono i 4 principi dei Linked Data definiti da Tim Berners-Lee?"
+  },
+  {
+    "role": "bot",
+    "content": "I 4 principi dei Linked Data definiti da Tim Berners-Lee sono:\n1. **Usare URI per identificare le risorse**: ogni risorsa deve avere un'identità univoca, rappresentata da un Uniform Resource Identifier (URI).\n2. **Usare HTTP URI in modo che le persone possano accedere alle risorse**: gli URI devono essere accessibili tramite il protocollo HTTP, in modo che le persone possano accedere alle risorse.\n3. **Fornire informazioni utili quando qualcuno accede a una risorsa**: quando una persona accede a una risorsa, deve essere fornita informazione utile sulla risorsa stessa.\n4. **Includere link ad altre risorse**: le risorse devono includere link ad altre risorse, in modo da creare una rete di collegamenti tra le risorse.\n\nQuesti principi sono fondamentali per la creazione di dati collegati (Linked Data) e permettono di creare una rete di dati interconnessi e accessibili."
+  }
+]

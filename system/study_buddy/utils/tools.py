@@ -78,8 +78,8 @@ from langchain_community.tools.google_lens import GoogleLensQueryRun
 from langchain_community.utilities.google_lens import GoogleLensAPIWrapper
 from langchain_community.tools import YouTubeSearchTool, WikipediaQueryRun
 from langchain_community.utilities import WikipediaAPIWrapper
-from langchain_community.tools.google_books import GoogleBooksQueryRun
-from langchain_community.utilities.google_books import GoogleBooksAPIWrapper
+# from langchain_community.tools.google_books import GoogleBooksQueryRun
+# from langchain_community.utilities.google_books import GoogleBooksAPIWrapper
 from langchain_community.tools.google_scholar import GoogleScholarQueryRun
 from langchain_community.utilities.google_scholar import GoogleScholarAPIWrapper
 # Tavily may not be installed in all environments; provide a lightweight
@@ -1440,27 +1440,27 @@ Code:"""
 # Custom API Wrappers with Error Handling
 # =============================================================================
 
-class GoogleBooksWrapper(GoogleBooksAPIWrapper):
-    """Google Books wrapper with better error handling."""
-    
-    def _format(self, query: str, books: list) -> str:
-        """Format search results with graceful handling of missing fields."""
-        if not books:
-            return f"No books found for query: {query}"
-        
-        results = [f"Found {len(books)} books for '{query}':"]
-        
-        for i, book in enumerate(books, start=1):
-            info = book.get("volumeInfo", {})
-            title = info.get("title", "Title unavailable")
-            authors = self._format_authors(info.get("authors", ["Unknown author"]))
-            summary = info.get("description", "No description")
-            link = info.get("infoLink", "No link available")
-            
-            result = f'{i}. "{title}" by {authors}\n   {summary}\n   More info: {link}'
-            results.append(result)
-        
-        return "\n\n".join(results)
+# class GoogleBooksWrapper(GoogleBooksAPIWrapper):
+#     """Google Books wrapper with better error handling."""
+#     
+#     def _format(self, query: str, books: list) -> str:
+#         """Format search results with graceful handling of missing fields."""
+#         if not books:
+#             return f"No books found for query: {query}"
+#         
+#         results = [f"Found {len(books)} books for '{query}':"]
+#         
+#         for i, book in enumerate(books, start=1):
+#             info = book.get("volumeInfo", {})
+#             title = info.get("title", "Title unavailable")
+#             authors = self._format_authors(info.get("authors", ["Unknown author"]))
+#             summary = info.get("description", "No description")
+#             link = info.get("infoLink", "No link available")
+#             
+#             result = f'{i}. "{title}" by {authors}\n   {summary}\n   More info: {link}'
+#             results.append(result)
+#         
+#         return "\n\n".join(results)
 
 
 class GoogleScholarWrapper(GoogleScholarAPIWrapper):
@@ -1645,10 +1645,10 @@ def create_basic_tools() -> List[Tool]:
         """Wrapper for Wikipedia search."""
         return wikipedia_tool.run(query)
 
-    scholar_tool = GoogleScholarQueryRun(api_wrapper=GoogleScholarWrapper())
-    def run_scholar(query: str) -> str:
-        """Wrapper for Google Scholar search."""
-        return scholar_tool.run(query)
+    # scholar_tool = GoogleScholarQueryRun(api_wrapper=GoogleScholarWrapper())
+    # def run_scholar(query: str) -> str:
+    #     """Wrapper for Google Scholar search."""
+    #     return scholar_tool.run(query)
 
     retriever = VectorStoreRetriever()
     wikidata_searcher = WikidataSearcher()
@@ -1879,11 +1879,11 @@ def create_basic_tools() -> List[Tool]:
             description="Search Wikipedia for encyclopedic information",
             func=run_wikipedia
         ),
-        Tool(
-            name="google_scholar_search",
-            description="Search academic literature on Google Scholar",
-            func=run_scholar
-        ),
+        # Tool(
+        #     name="google_scholar_search",
+        #     description="Search academic literature on Google Scholar",
+        #     func=run_scholar
+        # ),
         Tool(
             name="wikidata_search",
             description="Search structured data on Wikidata",
