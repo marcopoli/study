@@ -35,8 +35,8 @@ except:
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 # --- CONFIGURAZIONE STUDIO E PERCORSI ---
-STUDY_LOG_DIR = Path("data/study_logs")
-STUDY_RES_DIR = Path("data/study_results")
+STUDY_LOG_DIR = Path("../userstudy/logs")
+STUDY_RES_DIR = Path("../userstudy/results")
 STUDY_LOG_DIR.mkdir(parents=True, exist_ok=True)
 STUDY_RES_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -147,6 +147,34 @@ SCENARIOS = {
         "role": "Approfondisci i sistemi di tipi nei linguaggi moderni.",
         "context": "Vuoi distinguere tra polimorfismo parametrico e ad-hoc.",
         "goal": "Usa Study Buddy per:\n1. Chiedere: 'Qual è la differenza tra polimorfismo parametrico (es. Generics in Java) e polimorfismo ad-hoc (es. Overloading)?'\n2. Verificare se la risposta spiega che il parametrico usa lo **stesso codice per tipi diversi**, mentre l'ad-hoc usa **codice diverso** per ogni tipo."
+    },
+    "16": {
+        "title": "Fundamental Theorem of Calculus (Calculus)",
+        "subject": "Calculus",
+        "role": "Sei uno studente di Analisi Matematica che sta ripassando il Teorema Fondamentale del Calcolo.",
+        "context": "Vuoi capire la connessione tra derivazione e integrazione.",
+        "goal": "Usa Study Buddy per:\n1. Chiedere: 'Cosa afferma il Teorema Fondamentale del Calcolo secondo le slide del corso?'\n2. Verificare se la risposta spiega che l'**integrazione e la derivazione sono operazioni inverse**."
+    },
+    "17": {
+        "title": "Limiti e Continuità (Calculus)",
+        "subject": "Calculus",
+        "role": "Stai studiando il comportamento delle funzioni in prossimità di punti critici.",
+        "context": "Ti serve chiarire il concetto di limite e le condizioni di continuità.",
+        "goal": "Usa Study Buddy per:\n1. Chiedere: 'Qual è la definizione formale di limite di una funzione per x che tende a x0?'\n2. Verificare se la risposta cita gli **epsilon-delta** o la definizione intuitiva presente nelle slide."
+    },
+    "18": {
+        "title": "Derivate e Regole di Calcolo (Calculus)",
+        "subject": "Calculus",
+        "role": "Devi calcolare la derivata di funzioni composte.",
+        "context": "Vuoi ripassare la Chain Rule e le derivate fondamentali.",
+        "goal": "Usa Study Buddy per:\n1. Chiedere: 'Come si applica la regola della catena (chain rule) per derivare una funzione composta f(g(x))?'\n2. Verificare se la risposta mostra la formula **f'(g(x)) * g'(x)**."
+    },
+    "19": {
+        "title": "Integrali Definiti ed Indefiniti (Calculus)",
+        "subject": "Calculus",
+        "role": "Ti stai preparando per il calcolo delle aree sotto una curva.",
+        "context": "Vuoi capire la differenza tra integrale definito e indefinito.",
+        "goal": "Usa Study Buddy per:\n1. Chiedere: 'Qual è la differenza tra un integrale definito e uno indefinito secondo il materiale del corso?'\n2. Verificare se la risposta menziona l'**insieme delle primitive** vs un **valore numerico (area)**."
     }
 }
 
@@ -409,6 +437,8 @@ def show_consent_screen():
 
     # Download Informativa
     privacy_pdf_path = Path("doc_privacy/Informativa trattamento dati personali StudyBuddy.pdf")
+    if not privacy_pdf_path.exists():
+        privacy_pdf_path = Path("../doc_privacy/Informativa trattamento dati personali StudyBuddy.pdf")
     if privacy_pdf_path.exists():
         with open(privacy_pdf_path, "rb") as pdf_file:
             st.download_button(
@@ -490,8 +520,8 @@ def show_scenario_selection():
         st.subheader("Selezione Materia")
         st.write("Per iniziare, seleziona la materia su cui vuoi verta la sessione di studio:")
         
-        cols = st.columns(3)
-        subjects = ["MRI", "SIIA", "LP"]
+        subjects = ["MRI", "SIIA", "LP", "Calculus"]
+        cols = st.columns(len(subjects))
         
         for i, subj in enumerate(subjects):
             with cols[i]:
@@ -921,6 +951,7 @@ def show_documents_sidebar():
             "SIIA", "Lesson_", "Semantics", "Linked_Data", "RecSys", "Recommender", "Knowledge", 
             "LLM", "Learning", "WEB", "NETFLIX", "Neuro-symbolic", "Ontology"
         ],
+        "Calculus": ["Calculus", "c0", "c1", "c_"]
     }
     
     # Files to exclude globally
@@ -1078,7 +1109,8 @@ def sidebar_configuration():
                     subj_map = {
                         "SIIA": "Semantics in Intelligent Information Access",
                         "MRI": "Metodi per il Ritrovamento dell'Informazione",
-                        "LP": "Linguaggi di programmazione (LP)"
+                        "LP": "Linguaggi di programmazione (LP)",
+                        "Calculus": "Calculus"
                     }
                     course_for_chat = subj_map.get(scen.get("subject"), "None")
             
@@ -1278,8 +1310,16 @@ def play_text_to_speech(text, key):
     if st.button("🔊", key=key):
         try:
             path = AudioProcessor().text_to_speech(text)
-            if path and not path.startswith("Error"): st.audio(path, format="audio/mp3")
-        except: st.error("TTS Error")
+            if path and not path.startswith("Error"):
+                import os
+                if os.path.exists(path):
+                    with open(path, "rb") as f:
+                        audio_bytes = f.read()
+                    st.audio(audio_bytes, format="audio/mp3", autoplay=True)
+                else:
+                    st.error(f"Errore: File audio non generato al percorso {path}")
+            elif path and path.startswith("Error"): st.error(path)
+        except Exception as e: st.error(f"Errore TTS: {str(e)} (Assicurati di aver impostato ELEVEN_API_KEY e ASSEMBLYAI_API_KEY nelle variabili d'ambiente)")
 
 def voice_chat_input():
     float_init()

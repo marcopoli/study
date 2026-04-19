@@ -134,7 +134,7 @@ class Config:
     # Default models and settings
     DEFAULT_LLM_MODEL = "mistralai/Mistral-7B-Instruct-v0.2"
     DEFAULT_TTS_MODEL = "eleven_multilingual_v2"
-    DEFAULT_VOICE_ID = "paraDwhkbSkX4FhBkAzc"
+    DEFAULT_VOICE_ID = "Xb7hH8MSUJpSbSDYk0k2"  # Alice, a standard free-tier compatible voice
     
     @classmethod
     def validate_key(cls, key_name: str) -> str:
@@ -321,6 +321,14 @@ class DataVizInput(BaseModel):
 class AudioInput(BaseModel):
     """Input schema for audio processing."""
     audio_input: Union[str, bytes] = Field(description="Audio file path, URL, or raw bytes")
+
+
+class MathpixInput(BaseModel):
+    image_path_or_url: str = Field(description="The local file path or public URL of the image to analyze with Mathpix.")
+
+
+class GoogleCloudVisionInput(BaseModel):
+    image_path_or_url: str = Field(description="The local file path or public URL of the image to analyze.")
 
 
 class GoogleLensInput(BaseModel):
@@ -725,7 +733,7 @@ Lunghezza totale: {len(raw_text)} caratteri, {total_lines} righe
         try:
             images = convert_from_path(file_path)
             # Aggiunto lang='ita+eng' per migliorare l'accuratezza su testi misti
-            text = "\n".join([pytesseract.image_to_string(img, lang='ita+eng') for img in images])
+            text = "\n".join([pytesseract.image_to_string(img, lang='ita+eng', config='--psm 6') for img in images])
             return text
         except Exception as e:
             error_msg = str(e)
@@ -745,7 +753,7 @@ Lunghezza totale: {len(raw_text)} caratteri, {total_lines} righe
         try:
             image = Image.open(file_path)
             # Aggiunto lang='ita+eng' per migliorare l'accuratezza
-            return pytesseract.image_to_string(image, lang='ita+eng')
+            return pytesseract.image_to_string(image, lang='ita+eng', config='--psm 6')
         except Exception as e:
             return f"Error extracting from image: {str(e)}"
     
@@ -1668,6 +1676,169 @@ def create_basic_tools() -> List[Tool]:
 
         lens_api_wrapper = GoogleLensAPIWrapper(serp_api_key=lens_key)
         
+        def _process_lens_raw_result(raw_result: str, local_ocr: str = None) -> str:
+            """Helper to structure Google Lens output with OCR text priority."""
+            structured_result = "🔍 GOOGLE LENS ANALYSIS - IMAGE SUCCESSFULLY ANALYZED\n\n"
+            
+            # 0. Add Local OCR if available (High Priority)
+            if local_ocr and local_ocr.strip():
+                structured_result += "📑 LOCAL OCR TEXT (PRIMARY SOURCE):\n" + local_ocr.strip() + "\n\n"
+
+            # 1. Extract OCR Text from Google Lens (The most important part for exercises)
+            text_results = []
+            lines = raw_result.split('\n')
+            
+            # Try to find text matches (SerpApi 'text_results')
+            is_in_text_section = False
+            for line in lines:
+                l = line.strip()
+                if not l: continue
+                
+                # Section markers in SerpApi/LangChain wrapper output
+                if 'Text Results:' in l or 'OCR Text:' in l:
+                    is_in_text_section = True
+                    continue
+                if is_in_text_section and ('Visual Matches:' in l or 'Knowledge Graph:' in l or 'Related Questions:' in l):
+                    is_in_text_section = False
+                    continue
+                    
+                # Extract lines
+                if is_in_text_section:
+                    if l.startswith('Text:'):
+                        text_results.append(l.replace('Text:', '').strip())
+                    elif not any(x in l for x in ['Result ', '---', ':::', 'Title:', 'Link:', 'Source:']):
+                        text_results.append(l)
+            
+            if text_results:
+                valid_text = [t for t in text_results if len(t) > 1]
+                if valid_text:
+                    structured_result += "📝 GOOGLE LENS OCR (SUPPLEMENTAL):\n" + "\n".join(valid_text) + "\n\n"
+            
+            # 2. Extract Visual Context (Titles of similar images)
+            visual_subjects = []
+            for line in lines:
+                if 'Title:' in line:
+                    title = line.split('Title:')[1].strip()
+                    if title and title not in visual_subjects:
+                        visual_subjects.append(title)
+            
+            if visual_subjects:
+                structured_result += "🌐 VISUAL CONTEXT (Top Search Matches):\n- " + "\n- ".join(visual_subjects[:5]) + "\n\n"
+            
+            # 3. Full Truncated Result for Fallback
+            if len(raw_result) > 2000:
+                structured_result += "DETAILED RAW DATA (Truncated):\n" + raw_result[:2000] + "\n..."
+            else:
+                structured_result += "DETAILED RAW DATA:\n" + raw_result
+                
+            return structured_result
+
+        def run_mathpix_ocr(image_path_or_url: str) -> str:
+            """
+            Analyzes an image using Mathpix Snip API for industry-standard mathematical OCR.
+            Falls back to GCV and then Tesseract if unconfigured or failed.
+            """
+            resolved_path = resolve_file_path(image_path_or_url)
+            logger.info(f"Analyzing image with Mathpix: {resolved_path}")
+
+            app_id = Config.vision.mathpix.app_id
+            app_key = Config.vision.mathpix.app_key
+
+            if not app_id or "YOUR_" in app_id:
+                logger.warning("Mathpix not configured, falling back to Google Cloud Vision")
+                return run_google_cloud_vision(image_path_or_url)
+
+            try:
+                import requests
+                import base64
+
+                # Determine if URL or local
+                if resolved_path.startswith("http"):
+                    image_url = resolved_path
+                else:
+                    with open(resolved_path, "rb") as image_file:
+                        image_base64 = base64.b64encode(image_file.read()).decode("utf-8")
+                    image_url = f"data:image/jpeg;base64,{image_base64}"
+
+                r = requests.post(
+                    "https://api.mathpix.com/v3/text",
+                    json={
+                        "src": image_url,
+                        "formats": ["text", "latex_simplified"],
+                        "math_inline_delimiters": ["$", "$"],
+                        "math_display_delimiters": ["$$", "$$"]
+                    },
+                    headers={
+                        "app_id": app_id,
+                        "app_key": app_key,
+                        "Content-type": "application/json"
+                    },
+                    timeout=30
+                )
+                r.raise_for_status()
+                data = r.json()
+                
+                text = data.get("text", "")
+                if not text:
+                    return "Mathpix: No text detected."
+                
+                return f"📑 MATHPIX OCR (MATHEMATICAL PRECISION):\n{text}"
+
+            except Exception as e:
+                logger.error(f"Mathpix failed: {str(e)}. Falling back to GCV.")
+                return run_google_cloud_vision(image_path_or_url)
+
+        def run_google_cloud_vision(image_path_or_url: str) -> str:
+            """
+            Analyzes an image using Google Cloud Vision API for superior mathematical and document OCR.
+            Requires GOOGLE_APPLICATION_CREDENTIALS to be set.
+            """
+            resolved_path = resolve_file_path(image_path_or_url)
+            logger.info(f"Analyzing image with Google Cloud Vision: {resolved_path}")
+
+            try:
+                from google.cloud import vision
+                import io
+
+                client = vision.ImageAnnotatorClient()
+
+                # Handle remote vs local
+                if resolved_path.startswith("http"):
+                    image = vision.Image()
+                    image.source.image_uri = resolved_path
+                else:
+                    with io.open(resolved_path, 'rb') as image_file:
+                        content = image_file.read()
+                    image = vision.Image(content=content)
+
+                # Use DOCUMENT_TEXT_DETECTION for dense text/math
+                response = client.document_text_detection(image=image)
+                
+                if response.error.message:
+                    return f"Google Cloud Vision Error: {response.error.message}"
+
+                full_text = response.full_text_annotation.text
+                if not full_text:
+                    return "Google Cloud Vision: No text detected in the image."
+                
+                return f"📑 GOOGLE CLOUD VISION OCR (HIGH PRECISION):\n{full_text}"
+
+            except Exception as e:
+                logger.error(f"Failed to run Google Cloud Vision: {str(e)}")
+                # FALLBACK to Tesseract
+                try:
+                    logger.info("Attempting fallback to local OCR (Tesseract)...")
+                    processor = DocumentProcessor()
+                    fallback_text = processor.extract_text(resolved_path)
+                    return (
+                        f"⚠️ GOOGLE CLOUD VISION NOT CONFIGURED. Falling back to Local OCR:\n\n"
+                        f"{fallback_text}\n\n"
+                        "Note: For better results with mathematical symbols, please configure "
+                        "GOOGLE_APPLICATION_CREDENTIALS for Google Cloud Vision."
+                    )
+                except Exception as fallback_err:
+                    return f"Error: Both Google Cloud Vision and fallback OCR failed. GCV Error: {str(e)}, Fallback Error: {str(fallback_err)}"
+
         def run_google_lens_analysis(query: str) -> str:
             """
             Analyzes an image from a file path or URL using Google Lens.
@@ -1684,35 +1855,8 @@ def create_basic_tools() -> List[Tool]:
                 logger.info(f"Using public URL directly: {resolved_path}")
                 raw_result = lens_api_wrapper.run(resolved_path)
                 
-                # Parse and structure the Google Lens output for better LLM understanding
-                structured_result = "🔍 GOOGLE LENS ANALYSIS - IMAGE SUCCESSFULLY ANALYZED\n\n"
-                
-                # Try to extract main visual descriptions from the results
-                # Look for common patterns in Google Lens results (titles, text matches, etc.)
-                lines = raw_result.split('\n')
-                visual_subjects = []
-                
-                # Extract visual information from titles
-                for line in lines:
-                    if 'Title:' in line:
-                        title = line.split('Title:')[1].strip()
-                        # Look for common animal/object descriptions
-                        keywords = ['dog', 'cat', 'puppy', 'kitten', 'terrier', 'animal', 'bird', 'car', 'building', 'person', 'food']
-                        for keyword in keywords:
-                            if keyword.lower() in title.lower() and keyword not in visual_subjects:
-                                visual_subjects.append(keyword.title())
-                
-                if visual_subjects:
-                    structured_result += f"DETECTED VISUAL CONTENT: {', '.join(visual_subjects)}\n\n"
-                
-                # Truncate the raw detailed results but keep the summary clear
-                if len(raw_result) > 2500:
-                    logger.warning(f"Google Lens returned {len(raw_result)} chars, truncating details to 2500")
-                    structured_result += "DETAILED SEARCH RESULTS (showing first 2500 chars):\n" + raw_result[:2500] + "\n\n[...results truncated for context limit...]"
-                else:
-                    structured_result += "DETAILED SEARCH RESULTS:\n" + raw_result
-                
-                return structured_result
+                return _process_lens_raw_result(raw_result)
+
             
             # Check if local file exists
             if not os.path.exists(resolved_path):
@@ -1723,6 +1867,9 @@ def create_basic_tools() -> List[Tool]:
             if ext not in [".png", ".jpg", ".jpeg", ".tiff", ".bmp", ".gif", ".webp"]:
                 return f"Error: File '{os.path.basename(resolved_path)}' is not a supported image format (got {ext})"
             
+            # Local OCR removed to prevent noise - use google_cloud_vision for text
+            local_ocr = ""
+
             # Try to upload local file to imgbb for public access
             public_url = FileProcessor.upload_image_to_imgbb(resolved_path)
             
@@ -1732,57 +1879,37 @@ def create_basic_tools() -> List[Tool]:
                 try:
                     raw_result = lens_api_wrapper.run(public_url)
                     
-                    # Parse and structure the Google Lens output for better LLM understanding
-                    structured_result = "🔍 GOOGLE LENS ANALYSIS - IMAGE SUCCESSFULLY ANALYZED\n\n"
-                    
-                    # Try to extract main visual descriptions from the results
-                    # Look for common patterns in Google Lens results (titles, text matches, etc.)
-                    lines = raw_result.split('\n')
-                    visual_subjects = []
-                    
-                    # Extract visual information from titles
-                    for line in lines:
-                        if 'Title:' in line:
-                            title = line.split('Title:')[1].strip()
-                            # Look for common animal/object descriptions
-                            keywords = ['dog', 'cat', 'puppy', 'kitten', 'terrier', 'animal', 'bird', 'car', 'building', 'person', 'food']
-                            for keyword in keywords:
-                                if keyword.lower() in title.lower() and keyword not in visual_subjects:
-                                    visual_subjects.append(keyword.title())
-                    
-                    if visual_subjects:
-                        structured_result += f"DETECTED VISUAL CONTENT: {', '.join(visual_subjects)}\n\n"
-                    
-                    # Truncate the raw detailed results but keep the summary clear
-                    if len(raw_result) > 2500:
-                        logger.warning(f"Google Lens returned {len(raw_result)} chars, truncating details to 2500")
-                        structured_result += "DETAILED SEARCH RESULTS (showing first 2500 chars):\n" + raw_result[:2500] + "\n\n[...results truncated for context limit...]"
-                    else:
-                        structured_result += "DETAILED SEARCH RESULTS:\n" + raw_result
-                    
-                    return structured_result
+                    return _process_lens_raw_result(raw_result, local_ocr=local_ocr)
+
                 except Exception as e:
                     logger.error(f"Google Lens analysis failed: {e}", exc_info=True)
                     # Fall through to OCR fallback
             else:
-                logger.warning("Image upload failed or IMGBB_API_KEY not set, falling back to OCR")
+                logger.warning("Image upload failed or IMGBB_API_KEY not set")
             
-            # Fallback: use OCR for local images when upload not available
-            try:
-                processor = DocumentProcessor()
-                ocr_text = processor.extract_text(resolved_path)
+            # Fallback: if upload failed but we have local_ocr, return that
+            if local_ocr:
                 return (
-                    "Note: Google Lens requires a public URL. Image upload failed or is not configured "
-                    "(set IMGBB_API_KEY to enable automatic uploads). "
-                    "Performed OCR on the local image instead:\n\n"
-                    f"{ocr_text}"
+                    "Note: Google Lens via SerpApi requires a public URL. Image upload failed. "
+                    "However, local OCR was successful:\n\n"
+                    f"{local_ocr}"
                 )
-            except Exception as e2:
-                logger.error(f"OCR fallback failed: {e2}", exc_info=True)
-                return (
-                    f"Error: Could not analyze local image. Upload to temporary hosting failed "
-                    f"and OCR fallback encountered an error: {str(e2)}"
-                )
+            
+            return "Error: Could not analyze local image (Upload failed and OCR failed)."
+
+        mathpix_ocr = StructuredTool.from_function(
+            func=run_mathpix_ocr,
+            name="mathpix_ocr",
+            description="THE GOLD STANDARD tool for OCR. Use this as your FIRST choice for any image containing mathematical formulas, equations, or dense technical exercises. It provides LaTeX output.",
+            args_schema=MathpixInput
+        )
+
+        google_cloud_vision = StructuredTool.from_function(
+            func=run_google_cloud_vision,
+            name="google_cloud_vision",
+            description="Use THIS tool for high-precision OCR of mathematical exercises, dense text, or handwritten documents. It is superior to standard OCR for formulas and structured academic content.",
+            args_schema=GoogleCloudVisionInput
+        )
 
         google_lens = StructuredTool.from_function(
             func=run_google_lens_analysis,
@@ -1890,6 +2017,10 @@ def create_basic_tools() -> List[Tool]:
             func=wikidata_searcher.search
         )
     ]
+    if mathpix_ocr:
+        tools.append(mathpix_ocr)
+    if google_cloud_vision:
+        tools.append(google_cloud_vision)
     if google_lens:
         tools.append(google_lens)
     

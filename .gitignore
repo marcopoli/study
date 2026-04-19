@@ -165,3 +165,18 @@ secrets.yaml
 ngrok
 ngrok.exe
 ngrok.yml
+
+# Extra debug/history
+system/history/
+system/debug_output.txt
+system/debug_api.py
+system/check_models.py
+system/test_langchain*.py
+system/test_tts.py
+test_calculus_rag.py
+ultimate_rag_test.py
+system/final_rag_check.py
+
+# User Study transient and sensitive data
+userstudy/logs/
+userstudy/results/codes.csv

@@ -76,9 +76,10 @@ For course-related questions:
 Response Format:
 1. DIRECTLY answer the question using the retrieved information.
 2. YOU MUST CITE the source document for every relevant piece of information (e.g. "According to `slides.pdf`...", "As stated in `syllabus.pdf`...").
-3. DO NOT just list references at the end. Mention them IN THE TEXT where you use the information.
-4. NO META-COMMENTARY about tools (e.g. DO NOT say "Sto usando tool X").
-5. Include a "Riferimenti:" section at the end with the full list of files used.
+3. **METHODOLOGY**: Present a step-by-step resolution. For each step, cite the specific document or slide that defines the method used.
+4. DO NOT just list references at the end. Mention them IN THE TEXT where you use the information.
+5. **CRITICAL INCOGNITO MODE**: NEVER mention your internal tools (e.g. 'retrieve_knowledge', 'youtube_search') to the user. ALWAYS act as if you just intuitively "know" things. DO NOT say "I will search the database". If you need a tool, just call it silently.
+6. Include a "Riferimenti:" section at the end with the full list of files used.
 
 Use LaTeX notation for mathematical formulas: inline with $formula$ and display with $$formula$$.
 If no reliable sources are found, clearly state limitations rather than guessing.
@@ -96,17 +97,16 @@ CRITICAL INSTRUCTIONS FOR TOOL USAGE:
 10. **CRITICAL - File paths**: When the context mentions "User has uploaded a file: uploaded_files/filename.ext", you MUST use EXACTLY that path. NEVER change the filename to generic names like "data.csv", "file.csv", etc. Always use the exact filename provided in the context.
 
 GOOGLE LENS ANALYSIS - CRITICAL:
-- When google_lens_analyze returns results starting with "🔍 GOOGLE LENS ANALYSIS - IMAGE SUCCESSFULLY ANALYZED", THIS MEANS THE IMAGE WAS ANALYZED SUCCESSFULLY
-- The results will contain "DETECTED VISUAL CONTENT:" showing what objects/subjects were found
-- ALWAYS describe what was found in the image based on the "DETECTED VISUAL CONTENT" and "DETAILED SEARCH RESULTS"
-- NEVER say "I couldn't find information" or "the image was not provided" when google_lens_analyze returns data
-- Example response: "L'immagine contiene [describe the DETECTED VISUAL CONTENT]. Google Lens ha trovato [summarize key findings from DETAILED SEARCH RESULTS]"
-- Be specific and direct - tell the user what's in the image based on the tool results
+1. When google_lens_analyze returns results starting with "🔍 GOOGLE LENS ANALYSIS - IMAGE SUCCESSFULLY ANALYZED", THIS MEANS THE IMAGE WAS ANALYZED SUCCESSFULLY.
+2. The results contain "📑 LOCAL OCR TEXT (PRIMARY SOURCE)" which is the text content of the exercise.
+3. **MANDATORY FOLLOW-UP**: If the image contains an exercise, formula, or technical term, YOU MUST IMMEDIATELY use 'retrieve_knowledge' to search for those terms in the course slides.
+4. **DO NOT ANSWER** purely based on your internal knowledge. Your goal is to solve the exercise USING the methods described in the documents (RAG).
+5. **CITATIONS**: Ensure you cite the files found via 'retrieve_knowledge' in your solution.
 
 WORKFLOW:
 1. CHECK if query is OUT-OF-TOPIC. If yes -> REFUSE.
-2. Analyze the user's request
-3. Use appropriate tools to gather information
+2. Analyze the user's request.
+3. Use appropriate tools (LENS FIRST for general description, then MATHPIX for exercises, then RAG) to gather information.
 """
 
 # =============================================================================
@@ -168,6 +168,12 @@ def _serialize_message(msg):
 
 def _extract_lens_info_fallback(tool_content: str) -> str:
     """Fallback manuale (Regex) se l'LLM fallisce."""
+    # 1. Try to extract from Local OCR (High Priority)
+    local_ocr_match = re.search(r'📑 LOCAL OCR TEXT \(PRIMARY SOURCE\):?\s*(.*?)(?=\n\n|\📝|\🌐|$)', tool_content, re.DOTALL)
+    if local_ocr_match and local_ocr_match.group(1).strip():
+        return f"Dall'OCR locale ho letto: {local_ocr_match.group(1).strip()[:200]}..."
+
+    # 2. Extract visual context
     detected = None
     detected_match = re.search(r'DETECTED VISUAL CONTENT:?\s*(.*)', tool_content)
     if detected_match:
@@ -186,7 +192,7 @@ def _extract_lens_info_fallback(tool_content: str) -> str:
     if detected:
         return f"L'immagine mostra: {detected}."
     
-    return "Ho analizzato l'immagine. Ecco i dettagli grezzi:\n" + tool_content[:300]
+    return "Ho analizzato l'immagine. Ecco i dettagli trovati:\n" + tool_content[:300]
 
 
 def _synthesize_answer(model, raw_data: str, user_query: str) -> str:
@@ -196,14 +202,14 @@ def _synthesize_answer(model, raw_data: str, user_query: str) -> str:
     """
     force_answer_prompt = (
         f"DOMANDA UTENTE: \"{user_query}\"\n\n"
-        "Ho trovato i seguenti DATI GREZZI nel database.\n"
-        "Il tuo compito è rispondere alla domanda dell'utente usando SOLO questi dati.\n\n"
-        f"--- INIZIO DATI GREZZI ---\n{raw_data[:7000]}\n--- FINE DATI GREZZI ---\n\n"
+        "Ho trovato i seguenti DATI nel database.\n"
+        "Il tuo compito è rispondere alla domanda dell'utente usando i dati sotto.\n\n"
+        f"--- INIZIO DATI ---\n{raw_data[:7000]}\n--- FINE DATI ---\n\n"
         "ISTRUZIONI CRITICHE:\n"
-        "1. Rispondi SOLO alla domanda specifica dell'utente. Sii CONCISO e DIRETTO.\n"
-        "2. NON riassumere l'intero documento se non richiesto.\n"
-        "3. Se l'utente chiede un dato specifico (es. email, data, nome), fornisci quel dato e basta.\n"
-        "4. Ignora le informazioni nel testo che non c'entrano con la domanda.\n"
+        "1. Rispondi alla domanda specifica dell'utente in modo CONCISO e DIRETTO.\n"
+        "2. IMPORTANTE: Includi SEMPRE i riferimenti ai file/documenti trovati (es. [NomeFile.pdf]).\n"
+        "3. **RIGOROSAMENTE**: Se i dati derivano da OCR e contengono simboli strani o ambigui (es. L_i, L_o, caratteri isolati), NON tentare di interpretarli o 'ripararli'. Dichiara esplicitamente che i dati sono illeggibili e chiedi all'utente una foto più chiara. NON inventare mai nomi di linguaggi o parametri.\n"
+        "4. Ignora le informazioni irrilevanti.\n"
         "5. Rispondi in italiano naturale.\n"
     )
     
@@ -499,17 +505,29 @@ def call_model(state, config):
                     break
             
             if last_tool_content:
-                # Fix for Google Lens
-                if 'GOOGLE LENS ANALYSIS' in last_tool_content:
+                # Fix for Vision Tools (Mathpix, GCV, Lens, Local OCR)
+                is_vision_result = any(x in last_tool_content for x in ['MATHPIX', 'GOOGLE CLOUD VISION', 'GOOGLE LENS', 'LOCAL OCR'])
+                if is_vision_result:
                     interpretation_prompt = (
-                        "Ho trovato dei risultati di analisi visiva ma non li ho descritti bene prima.\n"
-                        "Analizza questi dati e dimmi in ITALIANO cosa c'è nell'immagine.\n"
-                        f"DATI:\n{last_tool_content[:2500]}"
+                        "Ho analizzato un'immagine tecnica (esercizio o dispense).\n"
+                        "I dati OCR forniti potrebbero contenere rumore o errori di trascrizione (es. caratteri speciali errati). Pulisci il testo rimuovendo simboli privi di senso, ma NON 'inventare' o dedurre simboli che non siano chiaramente riconducibili a quanto visibile.\n"
+                        "IL TUO COMPITO:\n"
+                        "1. DESCRIVI l'esercizio esattamente come appare, identificando alfabeti, linguaggi e condizioni.\n"
+                        "2. **ANALISI OCR**: Pulisci il testo rimuovendo simboli privi di senso, ma NON 'inventare' o dedurre simboli che non siano chiaramente riconducibili a quanto visibile.\n"
+                        "3. **CRITICAL**: DEVI ORA generare una chiamata al tool 'google_cloud_vision' per estrarre il testo ad alta precisione, oppure 'retrieve_knowledge' per cercare i concetti teorici identificati nelle dispense ufficiali (es. definizioni di linguaggi, operazioni tra linguaggi).\n"
+                        "4. NON risolvere ancora l'esercizio. Di' all'utente cosa hai trovato nell'immagine e che ora cercherai conferme nei documenti per procedere con la risoluzione corretta.\n\n"
+                        f"DATI DI ANALISI:\n{last_tool_content[:3500]}"
                     )
                     try:
-                        interpretation = llm.invoke([{"role": "user", "content": interpretation_prompt}])
-                        response.content = interpretation.content
-                    except:
+                        # We use invoke but we want the LLM to potentially call a tool in the output
+                        # However, for this to work we need the interpretation to be a message that the graph can act upon
+                        interpretation = llm.invoke([
+                            {"role": "system", "content": "Sei un assistente tecnico preciso e fedele all'input visivo. Non aggiungere informazioni non presenti nell'immagine."},
+                            {"role": "user", "content": interpretation_prompt}
+                        ])
+                        response = interpretation # This allows the graph to see tool_calls if generated
+                    except Exception as e:
+                        logger.error(f"Failed to fix generic response: {e}")
                         response.content = _extract_lens_info_fallback(last_tool_content)
                 
                 # Fix for Retrieve Knowledge / General Data

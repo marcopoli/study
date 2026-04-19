@@ -121,6 +121,7 @@ def scan_directory_for_new_documents(processed_hashes: set, parsed_data_file: Pa
                     doc_hash = compute_document_hash(content)
 
                     if doc_hash not in processed_hashes:
+                        metadata["file_hash"] = doc_hash
                         new_docs.append(Document(page_content=content, metadata=metadata))
                         new_hashes.add(doc_hash)
                         save_extracted_text(doc_hash, content)  # solo per debug
@@ -154,6 +155,7 @@ def scan_directory_for_new_documents(processed_hashes: set, parsed_data_file: Pa
                 for doc in documents:
                     # Aggiunge i metadati al documento
                     metadata["file_path"] = str(filepath)
+                    metadata["file_hash"] = doc_hash
                     
                     new_doc = Document(page_content=doc.page_content, metadata=metadata)
                     save_extracted_text(doc_hash, doc.page_content)

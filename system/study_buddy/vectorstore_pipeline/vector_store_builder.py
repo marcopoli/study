@@ -17,8 +17,8 @@ from study_buddy.config import logger, PROCESSED_DOCS_FILE, FAISS_INDEX_DIR, PAR
 
 CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 200
-BATCH_SIZE = 64
-EMBEDDING_BATCH_SIZE = 32
+BATCH_SIZE = 128
+EMBEDDING_BATCH_SIZE = 128
 RATE_LIMIT_DELAY = 60
 GPU_MEMORY_FRACTION = 0.85
 
@@ -42,6 +42,7 @@ def optimize_gpu_memory():
 def save_temp_docs(docs, hashes):
     """Save temporary documents and their hashes in case of failure."""
     try:
+        logger.info(f"Saving {len(docs)} temporary extraction results to {TEMP_DOCS_FILE}...")
         # Crea la cartella se non esiste
         temp_dir = os.path.dirname(TEMP_DOCS_FILE)
         if temp_dir and not os.path.exists(temp_dir):
@@ -52,7 +53,7 @@ def save_temp_docs(docs, hashes):
             json.dump({
                 "docs": [doc.dict() for doc in docs],
                 "hashes": list(hashes)
-            }, f, indent=4)
+            }, f)
         logger.info("Temporary documents and hashes saved successfully.")
     except Exception as e:
         logger.error(f"Error saving temporary documents: {e}")
@@ -188,7 +189,7 @@ def save_processed_hashes(file_path: Path, hashes: Set[str]):
     try:
         file_path.parent.mkdir(parents=True, exist_ok=True)
         with open(file_path, "w", encoding="utf-8") as f:
-            json.dump(list(hashes), f, indent=4)
+            json.dump(list(hashes), f)
         logger.info("Processed hashes saved successfully.")
     except Exception as e:
         logger.error(f"Error saving processed hashes: {e}")
@@ -279,7 +280,13 @@ def index_documents(new_docs: list, new_hashes: set, processed_hashes: set,
                 total_chunks_processed += chunk_count
                 logger.info(f"Batch {batch_num} completed. Total chunks: {total_chunks_processed}")
                 
-                successfully_processed_hashes.update(new_hashes)
+                successfully_processed_hashes.update({doc.metadata.get("file_hash") for doc in batch if doc.metadata.get("file_hash")})
+                
+                # Save progress periodically
+                if successfully_processed_hashes:
+                    temp_hashes = processed_hashes.copy()
+                    temp_hashes.update(successfully_processed_hashes)
+                    save_processed_hashes(PROCESSED_DOCS_FILE, temp_hashes)
 
         except Exception as e:
             logger.error(f"Error indexing batch {batch_num}: {e}")
@@ -327,3 +334,24 @@ def get_gpu_memory_info():
 
 
 vector_store: Optional[FAISS] = None
+
+
+def main():
+    from study_buddy.vectorstore_pipeline.parse_course_metadata import parse_all_courses_metadata
+    
+    logger.info("Parsing the courses metadata...")
+    parse_all_courses_metadata()
+    
+    logger.info("Starting the FAISS index update process...")
+    vs = initialize_faiss_store()
+    
+    if vs:
+        save_path = Path(FAISS_INDEX_DIR)
+        vs.save_local(str(save_path))
+        logger.info(f"Final FAISS index saved to {save_path}")
+    else:
+        logger.error("Failed to initialize or update FAISS store.")
+
+
+if __name__ == "__main__":
+    main()

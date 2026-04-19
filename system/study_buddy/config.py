@@ -43,7 +43,7 @@ FILE_LOADERS = {
 
 AUDIO_EXTENSIONS = {".mp3", ".wav", ".flac", ".m4a"}
 VIDEO_EXTENSIONS = {".mp4", ".avi", ".mov", ".mkv"}
-SUPPORTED_EXTENSIONS = set(FILE_LOADERS.keys()).union(AUDIO_EXTENSIONS, VIDEO_EXTENSIONS)
+SUPPORTED_EXTENSIONS = set(FILE_LOADERS.keys()) # .union(AUDIO_EXTENSIONS, VIDEO_EXTENSIONS)
 
 # Load environment variables from .env
 load_dotenv()
@@ -111,10 +111,26 @@ class VectorStoreConfig(BaseModel):
     type: str  # "in_memory" o "faiss"
 
 
+class GoogleCloudVisionConfig(BaseModel):
+    model: str
+
+
+class MathpixConfig(BaseModel):
+    app_id: str
+    app_key: str
+
+
+class VisionConfig(BaseModel):
+    provider: str
+    google_cloud_vision: GoogleCloudVisionConfig
+    mathpix: MathpixConfig
+
+
 class AppConfig(BaseModel):
     llm: LLMConfig
     embeddings: EmbeddingsConfig
     vector_store: VectorStoreConfig
+    vision: VisionConfig
 
 
 # Loading configuration from YAML

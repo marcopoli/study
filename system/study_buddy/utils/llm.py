@@ -14,7 +14,7 @@ if provider == "together":
 
     llm = ChatTogether(
         model=model_name,
-        temperature=0.3,
+        temperature=0.1,  # Abbassato per maggiore determinismo nei tool e prevenire loop
         streaming=True
     )
     logger.info(f"Together AI LLM with model {model_name} successfully initialized.")
