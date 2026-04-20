@@ -1,21 +1,21 @@
 @echo off
-echo Avvio di Univox - Intelligent Study Assistant...
+echo Starting Univox - Intelligent Study Assistant...
 echo.
 
 cd system
 
 :: Check if virtual environment exists
 if not exist "venv\Scripts\python.exe" (
-    echo [ERRORE] Ambiente virtuale non trovato in system\venv.
-    echo Per favore, esegui prima setup_env.bat nella cartella system.
+    echo [ERROR] Virtual environment not found in system\venv.
+    echo Please run setup_env.bat first in the system folder.
     pause
     exit /b
 )
 
-echo Attivazione ambiente virtuale...
+echo Activating virtual environment...
 call venv\Scripts\activate.ps1
 
-echo Avvio del frontend Streamlit...
+echo Launching Streamlit frontend...
 streamlit run streamlit_frontend.py
 
 pause
