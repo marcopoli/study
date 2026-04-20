@@ -1,7 +1,7 @@
 # User Study Results
 
 ## Summary
-- **Participants**: 14
+- **Participants**: 33
 - **Average SUS Score**: 91.43 / 100
 - **Average NPS**: 8.36 / 10
 
