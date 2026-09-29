@@ -1,4 +1,4 @@
-"""Run the 12 tool-use tasks through the UniVox agent and record the first tool call.
+"""Run the 12 tool-use tasks through the agent and record the first tool call.
 
 Adapted from the original evaluation runner (study_buddy/evaluation/run_evaluation.py):
 for each task, the agent is invoked once and the first tool call it emits is stored

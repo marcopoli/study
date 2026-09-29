@@ -1,4 +1,4 @@
-"""Reproducible analysis of the UniVox user study (N = 33).
+"""Reproducible analysis of the user study (N = 33).
 
 Input : results.csv (userstudy/results/results.csv in the project repository)
 Usage : python user_study_analysis.py path/to/results.csv

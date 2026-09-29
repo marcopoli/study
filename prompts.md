@@ -1,6 +1,6 @@
 # System Prompts & Tool Descriptions
 
-This document contains all the system prompts and tool definitions used in **Univox (Study Buddy)**.
+This document contains all the system prompts and tool definitions used in the assistant.
 
 ## 1. Agent System Prompts
 

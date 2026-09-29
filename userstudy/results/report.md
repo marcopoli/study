@@ -1,4 +1,4 @@
-# 📊 Study Buddy - Report Analisi Sistema
+# 📊 Report Analisi Sistema
 **Generato il:** 2026-03-05 15:55:41
 
 ## 📈 Key Performance Indicators (KPI)
