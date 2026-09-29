@@ -1,19 +1,19 @@
 [
     {
         "question": "According to the MRI_syllabus.pdf, who is the professor for the 'Metodi per il Ritrovamento dell'Informazione' course?",
-        "expected_answer": "The professor for the course is Pasquale Lops."
+        "expected_answer": "The professor for the course is [LECTURER A]."
     },
     {
-        "question": "Find the email address for Professor Giovanni Semeraro in the SIIA_syllabus.pdf.",
-        "expected_answer": "Professor Giovanni Semeraro's email address is giovanni.semeraro@uniba.it."
+        "question": "Find the email address for [LECTURER B] in the SIIA_syllabus.pdf.",
+        "expected_answer": "[LECTURER B]'s email address is [EMAIL]."
     },
     {
         "question": "From the provided document 'Book_on_introduction_to_Information_Retrieval.pdf', what are the main topics it covers?",
         "expected_answer": "The book covers topics like Boolean and vector space models, index construction, evaluation methods, text classification, clustering, and web search concepts."
     },
     {
-        "question": "What are the office hours for Professor Pasquale Lops as listed in the MRI syllabus?",
-        "expected_answer": "Professor Pasquale Lops's office hours are on Tuesday from 10:00 to 12:00, or by appointment via email."
+        "question": "What are the office hours for [LECTURER A] as listed in the MRI syllabus?",
+        "expected_answer": "[LECTURER A]'s office hours are on Tuesday from 10:00 to 12:00, or by appointment via email."
     },
     {
         "question": "Under the 'Prerequisites/requirements' section of the SIIA_syllabus.pdf, what are the main subject areas listed?",

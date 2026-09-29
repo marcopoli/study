@@ -13,8 +13,8 @@ def test_retrieval():
     
     queries = [
         "According to the MRI_syllabus.pdf, who is the professor for the 'Metodi per il Ritrovamento dell'Informazione' course?",
-        "Find the email address for Professor Giovanni Semeraro in the SIIA_syllabus.pdf.",
-        "What are the office hours for Professor Pasquale Lops as listed in the MRI syllabus?",
+        "Find the email address for Professor B in the SIIA_syllabus.pdf.",
+        "What are the office hours for Professor A as listed in the MRI syllabus?",
         "What are the five criteria for the final grade attribution in the SIIA course syllabus?"
     ]
     

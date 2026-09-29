@@ -3,3 +3,9 @@ uvicorn
 python-multipart
 locust
 seaborn
+ragas==0.4.3
+langchain-community==0.3.31
+langchain-google-genai==4.4.0
+datasets
+flashrank
+scipy

@@ -1,0 +1,135 @@
+[
+  {
+    "id": "TOOL_T01",
+    "type": "TOOL",
+    "task": "Summarize the sample.pdf file.",
+    "ground_truth": {
+      "tool_name": "summarize_document",
+      "arguments": {
+        "__arg1": "sample.pdf"
+      }
+    }
+  },
+  {
+    "id": "TOOL_T02",
+    "type": "TOOL",
+    "task": "Search Google Scholar for: [LECTURER A] information retrieval",
+    "ground_truth": {
+      "tool_name": "google_scholar_search",
+      "arguments": {
+        "__arg1": "[LECTURER A] information retrieval"
+      }
+    }
+  },
+  {
+    "id": "TOOL_T03",
+    "type": "TOOL",
+    "task": "Search Wikipedia for: [UNIVERSITY]",
+    "ground_truth": {
+      "tool_name": "wikipedia_search",
+      "arguments": {
+        "__arg1": "[UNIVERSITY]"
+      }
+    }
+  },
+  {
+    "id": "TOOL_T04",
+    "type": "TOOL",
+    "task": "Using the file `analytics.csv`, please provide a complete statistical and semantic analysis.",
+    "ground_truth": {
+      "tool_name": "analyze_csv",
+      "arguments": {
+        "file_path": "analytics.csv"
+      }
+    }
+  },
+  {
+    "id": "TOOL_T05",
+    "type": "TOOL",
+    "task": "From the file `sample_data.csv`, create a bar chart showing the number of students per age.",
+    "ground_truth": {
+      "tool_name": "create_visualization",
+      "arguments": {
+        "csv_path": "sample_data.csv",
+        "query": "bar chart of number of students per age"
+      }
+    }
+  },
+  {
+    "id": "TOOL_T06",
+    "type": "TOOL",
+    "task": "Extract the text from the document sample.txt.",
+    "ground_truth": {
+      "tool_name": "extract_text",
+      "arguments": {
+        "__arg1": "sample.txt"
+      }
+    }
+  },
+  {
+    "id": "TOOL_T07",
+    "type": "TOOL",
+    "task": "Find a YouTube video explaining the Rocchio algorithm.",
+    "ground_truth": {
+      "tool_name": "youtube_search",
+      "arguments": {
+        "__arg1": "Rocchio algorithm explanation"
+      }
+    }
+  },
+  {
+    "id": "TOOL_T08",
+    "type": "TOOL",
+    "task": "Write and execute Python code to calculate 42 divided by 7.",
+    "ground_truth": {
+      "tool_name": "execute_code",
+      "arguments": {
+        "code": "result = 42 / 7\nprint(result)"
+      }
+    }
+  },
+  {
+    "id": "TOOL_T09",
+    "type": "TOOL",
+    "task": "What is the latest news about artificial intelligence?",
+    "ground_truth": {
+      "tool_name": "web_search",
+      "arguments": {
+        "__arg1": "latest news about artificial intelligence"
+      }
+    }
+  },
+  {
+    "id": "TOOL_T10",
+    "type": "TOOL",
+    "task": "Search for the book 'Modern Information Retrieval' on Google Books.",
+    "ground_truth": {
+      "tool_name": "google_books_search",
+      "arguments": {
+        "__arg1": "Modern Information Retrieval"
+      }
+    }
+  },
+  {
+    "id": "TOOL_T11",
+    "type": "TOOL",
+    "task": "Find structured data about 'Alan Turing' on Wikidata.",
+    "ground_truth": {
+      "tool_name": "wikidata_search",
+      "arguments": {
+        "__arg1": "Alan Turing"
+      }
+    }
+  },
+  {
+    "id": "TOOL_T12",
+    "type": "TOOL",
+    "task": "Search for the song 'Bohemian Rhapsody' on Spotify.",
+    "ground_truth": {
+      "tool_name": "spotify_search",
+      "arguments": {
+        "__arg1": "Bohemian Rhapsody"
+      }
+    }
+  }
+]
