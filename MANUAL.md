@@ -1,6 +1,6 @@
-# 🎓 User Manual: Univox Study Assistant
+# 🎓 User Manual: Study Assistant
 
-Welcome to **Univox**, your intelligent AI-powered assistant designed to support university study through Retrieval-Augmented Generation (RAG). This manual will guide you through the system’s features, both as a study participant and as a developer.
+Welcome to your intelligent AI-powered assistant designed to support university study through Retrieval-Augmented Generation (RAG). This manual will guide you through the system’s features, both as a study participant and as a developer.
 
 ***
 
@@ -8,7 +8,7 @@ Welcome to **Univox**, your intelligent AI-powered assistant designed to support
 
 To launch the system on Windows:
 1. Make sure Python is installed.
-2. Run the `start_univox.bat` file located in the root folder.
+2. Run the `start.bat` file located in the root folder.
 3. The application will automatically open in your browser at `http://localhost:8501`.
 
 ***
