@@ -1,5 +1,5 @@
 @echo off
-echo Starting Univox - Intelligent Study Assistant...
+echo Starting - Intelligent Study Assistant...
 echo.
 
 cd system
