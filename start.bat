@@ -1,7 +1,7 @@
 @echo off
 echo Starting - Intelligent Study Assistant...
 echo.
-
+ 
 cd system
 
 :: Check if virtual environment exists
